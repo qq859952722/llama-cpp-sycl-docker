@@ -1,0 +1,28 @@
+services:
+  llama-sycl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GGML_SYCL_F16: "OFF"
+    image: llama-cpp-sycl:latest
+    container_name: llama-sycl
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+    environment:
+      - ONEAPI_DEVICE_SELECTOR=level_zero:0
+      - ZES_ENABLE_SYSMAN=1
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "-m"
+      - "/models/your-model.gguf"
+      - "-ngl"
+      - "99"
