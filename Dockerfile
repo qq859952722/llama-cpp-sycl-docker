@@ -66,7 +66,9 @@ RUN mkdir -p /app/dist/bin /app/dist/lib && \
     cp build/bin/llama-server /app/dist/bin/ && \
     cp build/bin/llama-cli /app/dist/bin/ && \
     find build -name "*.so*" -exec cp -P {} /app/dist/lib/ \; && \
-    find /opt/intel/oneapi/compiler/latest/lib -name "*.so*" -exec cp -P {} /app/dist/lib/ \; 2>/dev/null || true
+    find /opt/intel/oneapi/compiler/latest/lib -name "*.so*" -exec cp -P {} /app/dist/lib/ \; 2>/dev/null || true && \
+    find /opt/intel/oneapi/mkl/latest/lib -name "*.so*" -exec cp -P {} /app/dist/lib/ \; 2>/dev/null || true && \
+    find /opt/intel/oneapi/tbb/latest/lib -name "*.so*" -exec cp -P {} /app/dist/lib/ \; 2>/dev/null || true
 
 # ----------------- Stage 2: Runtime -----------------
 FROM ubuntu:${UBUNTU_VERSION} AS runner
