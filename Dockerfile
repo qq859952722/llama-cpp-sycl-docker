@@ -59,7 +59,7 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
         -DGGML_SYCL_DNN=ON \
         -DCMAKE_CXX_FLAGS="-fsycl-unnamed-lambda" \
         -DCMAKE_EXE_LINKER_FLAGS="-fsycl-unnamed-lambda" \
-        -DLLAMA_BUILD_TESTS=OFF && \
+        -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=ON && \
     cmake --build build --config Release -j$(nproc) --target llama-server llama-cli llama-ls-sycl-device'
 
 RUN mkdir -p /app/dist/bin /app/dist/lib && \
