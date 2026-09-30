@@ -65,7 +65,8 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
 RUN mkdir -p /app/dist/bin /app/dist/lib && \
     cp build/bin/llama-server /app/dist/bin/ && \
     cp build/bin/llama-cli /app/dist/bin/ && \
-    find build -name "*.so*" -exec cp -P {} /app/dist/lib/ \;
+    find build -name "*.so*" -exec cp -P {} /app/dist/lib/ \; && \
+    find /opt/intel/oneapi/compiler/latest/lib -name "*.so*" -exec cp -P {} /app/dist/lib/ \; 2>/dev/null || true
 
 # ----------------- Stage 2: Runtime -----------------
 FROM ubuntu:${UBUNTU_VERSION} AS runner
@@ -77,7 +78,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV LLAMA_ARG_HOST=0.0.0.0
 ENV ONEAPI_DEVICE_SELECTOR=level_zero:0
 ENV ZES_ENABLE_SYSMAN=1
-ENV LD_LIBRARY_PATH=/app/lib:/opt/intel/oneapi/compiler/latest/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/app/lib:$LD_LIBRARY_PATH
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
@@ -97,11 +98,6 @@ RUN wget -qO - https://repositories.intel.com/gpu/intel-graphics.key | gpg --dea
         level-zero \
         libze1 \
     && rm -rf /var/lib/apt/lists/*
-
-# Copy SYCL runtime libraries from builder
-COPY --from=builder /opt/intel/oneapi/compiler/latest/lib/libsycl.so* /usr/local/lib/
-COPY --from=builder /opt/intel/oneapi/compiler/latest/lib/libur_adapter_level_zero.so* /usr/local/lib/
-COPY --from=builder /opt/intel/oneapi/compiler/latest/lib/libpi_level_zero.so* /usr/local/lib/
 
 WORKDIR /app
 
