@@ -15,10 +15,6 @@ on:
         description: 'llama.cpp branch or tag to build'
         required: true
         default: 'master'
-      oneapi_version:
-        description: 'Intel oneAPI basekit tag'
-        required: true
-        default: '2025.1.0-devel-ubuntu24.04'
       sycl_f16:
         description: 'Enable GGML_SYCL_F16 (ON/OFF)'
         required: true
@@ -81,7 +77,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            ONEAPI_VERSION=${{ github.event.inputs.oneapi_version || '2025.1.0-devel-ubuntu24.04' }}
             LLAMA_CPP_BRANCH=${{ github.event.inputs.llama_cpp_branch || 'master' }}
             GGML_SYCL_F16=${{ github.event.inputs.sycl_f16 || 'OFF' }}
           cache-from: type=gha
