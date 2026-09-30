@@ -1,11 +1,6 @@
 services:
   llama-sycl:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        GGML_SYCL_F16: "OFF"
-    image: llama-cpp-sycl:latest
+    image: ghcr.io/qq859952722/llama-cpp-sycl-docker:latest
     container_name: llama-sycl
     restart: unless-stopped
     devices:
