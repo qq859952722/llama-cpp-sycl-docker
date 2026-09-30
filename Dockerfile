@@ -60,12 +60,11 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
         -DCMAKE_CXX_FLAGS="-fsycl-unnamed-lambda" \
         -DCMAKE_EXE_LINKER_FLAGS="-fsycl-unnamed-lambda" \
         -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=ON && \
-    cmake --build build --config Release -j$(nproc) --target llama-server llama-cli llama-ls-sycl-device'
+    cmake --build build --config Release -j$(nproc) --target llama-server llama-cli'
 
 RUN mkdir -p /app/dist/bin /app/dist/lib && \
     cp build/bin/llama-server /app/dist/bin/ && \
     cp build/bin/llama-cli /app/dist/bin/ && \
-    cp build/bin/llama-ls-sycl-device /app/dist/bin/ && \
     find build -name "*.so*" -exec cp -P {} /app/dist/lib/ \;
 
 # ----------------- Stage 2: Runtime -----------------
