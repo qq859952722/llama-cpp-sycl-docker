@@ -12,6 +12,12 @@ services:
     environment:
       - ONEAPI_DEVICE_SELECTOR=level_zero:0
       - ZES_ENABLE_SYSMAN=1
+      - LD_LIBRARY_PATH=/app/lib
+      - GGML_BACKEND_DIR=/app/lib
+      - GGML_BACKEND_SEARCH_PATH=/app/lib
+    # Backends live in /app/lib; ggml looks next to the executable or in cwd.
+    working_dir: /app/lib
+    entrypoint: ["sh", "-c", "ln -sf /app/lib/libggml*.so /usr/local/bin/ 2>/dev/null || true; exec llama-server \"$@\"", "--"]
     command:
       - "--host"
       - "0.0.0.0"
