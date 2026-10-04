@@ -108,6 +108,29 @@ WORKDIR /app
 COPY --from=builder /app/dist/bin/ /usr/local/bin/
 COPY --from=builder /app/dist/lib/ /app/lib/
 
+# ---------------------------------------------------------------------------
+# Fix: ggml only discovers dynamic backends (libggml-sycl.so, libggml-cpu-*.so)
+# that sit NEXT TO THE EXECUTABLE or in the current working directory.
+# With GGML_BACKEND_DL=ON the backends are built into /app/lib while the
+# binaries live in /usr/local/bin, so a plain run reports:
+#     Available devices:
+#       (none)
+# and llama.cpp silently falls back to CPU-only inference (no SYCL / no iGPU).
+#
+# Measured on Intel i7-12700H (Iris Xe 96EU):
+#   GGML_BACKEND_DIR / GGML_BACKEND_SEARCH_PATH alone -> (none)
+#   symlinks into /usr/local/lib + ldconfig           -> (none)
+#   symlinks next to the binary (/usr/local/bin)      -> SYCL0 detected
+#   WORKDIR /app/lib (backends in cwd)                -> SYCL0 detected
+# The symlink is cwd-independent, so the container works with any WORKDIR
+# or entrypoint override.
+# ---------------------------------------------------------------------------
+RUN ln -sf /app/lib/libggml*.so /usr/local/bin/
+
+# Auxiliary: honoured by newer ggml builds (harmless no-op on current ones).
+ENV GGML_BACKEND_DIR=/app/lib
+ENV GGML_BACKEND_SEARCH_PATH=/app/lib
+
 RUN ldconfig
 
 WORKDIR /models
