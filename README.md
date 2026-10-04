@@ -37,6 +37,12 @@ services:
     environment:
       - ONEAPI_DEVICE_SELECTOR=level_zero:0
       - ZES_ENABLE_SYSMAN=1
+      - LD_LIBRARY_PATH=/app/lib
+      - GGML_BACKEND_DIR=/app/lib
+      - GGML_BACKEND_SEARCH_PATH=/app/lib
+    # ggml 在可执行文件同目录或 cwd 中查找动态后端，二者任一即可
+    working_dir: /app/lib
+    entrypoint: ["sh", "-c", "ln -sf /app/lib/libggml*.so /usr/local/bin/ 2>/dev/null || true; exec llama-server \"$@\"", "--"]
     command:
       - "--host"
       - "0.0.0.0"
@@ -57,11 +63,45 @@ docker compose up -d
 
 ### 2. 检查 SYCL 设备识别情况
 
+> **重要修复说明（2026-10-04）**
+>
+> 早期镜像存在**动态后端发现（backend discovery）缺陷**：`llama-cli --list-devices` 会输出
+>
+> ```text
+> Available devices:
+>   (none)
+> ```
+>
+> 导致容器**静默回退到纯 CPU 推理**，核显完全不参与，表现为生成极慢、GPU 占用为 0。
+>
+> **根因**：构建启用了 `-DGGML_BACKEND_DL=ON`，动态后端 `libggml-sycl.so` / `libggml-cpu-*.so` 被安装到 `/app/lib`，但可执行文件位于 `/usr/local/bin`。ggml 只在**可执行文件同目录**或**当前工作目录**中查找后端。
+>
+> **实测对照（Intel i7-12700H / Iris Xe 96EU）**：
+>
+> | 修复方式 | `--list-devices` 结果 |
+> |---|---|
+> | 未修复（默认） | `(none)` ❌ |
+> | 仅 `GGML_BACKEND_DIR=/app/lib` | `(none)` ❌ |
+> | 仅 `GGML_BACKEND_SEARCH_PATH=/app/lib` | `(none)` ❌ |
+> | 两个环境变量同时设置 | `(none)` ❌ |
+> | 软链到 `/usr/local/lib` + `ldconfig` | `(none)` ❌ |
+> | **软链到 `/usr/local/bin`（二进制同目录）** | **`SYCL0: Intel(R) Iris(R) Xe Graphics`** ✅ |
+> | **`WORKDIR /app/lib`（后端在 cwd）** | **`SYCL0: Intel(R) Iris(R) Xe Graphics`** ✅ |
+>
+> 当前镜像已在 Dockerfile 中内置 `ln -sf /app/lib/libggml*.so /usr/local/bin/`，无需额外配置。
+> 如使用旧镜像，可在 `docker-compose.yml` 中通过 `working_dir` + 自定义 `entrypoint` 临时规避（见下方示例）。
+
+
 运行以下命令验证容器是否能够探测到 12700H 的核显：
 
 ```bash
-docker run --rm --device /dev/dri:/dev/dri ghcr.io/qq859952722/llama-cpp-sycl-docker:latest llama-ls-sycl-device
+docker run --rm --device /dev/dri:/dev/dri \
+  --entrypoint llama-cli ghcr.io/qq859952722/llama-cpp-sycl-docker:latest --list-devices
 ```
+
+> 注：镜像只构建了 `llama-server` 与 `llama-cli`，旧文档中的 `llama-ls-sycl-device` 并不存在，会报 `executable file not found`。
+
+若输出 `(none)`，说明动态后端未被发现（参见上方「重要修复说明」）。
 
 正常输出示例：
 ```text
