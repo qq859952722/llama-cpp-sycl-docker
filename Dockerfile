@@ -4,7 +4,7 @@ ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION} AS builder
 
 ARG LLAMA_CPP_BRANCH=master
-ARG GGML_SYCL_F16=OFF
+ARG GGML_SYCL_F16=ON
 ARG LEVEL_ZERO_VERSION=1.33.1
 ARG LEVEL_ZERO_UBUNTU_VERSION=u24.04
 
@@ -55,9 +55,13 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
         -DGGML_BACKEND_DL=ON \
         -DGGML_CPU_ALL_VARIANTS=ON \
         -DGGML_SYCL_F16=${GGML_SYCL_F16} \
+        -DGGML_SYCL_DEVICE_ARCH=intel_gpu_tgllp \
+        -DGGML_SYCL_ENABLE_OPT=ON \
+        -DGGML_SYCL_ENABLE_FUSION=ON \
         -DGGML_SYCL_SUPPORT_LEVEL_ZERO_API=ON \
         -DGGML_SYCL_DNN=ON \
-        -DCMAKE_CXX_FLAGS="-fsycl-unnamed-lambda" \
+        -DCMAKE_CXX_FLAGS="-fsycl-unnamed-lambda -O3" \
+        -DCMAKE_C_FLAGS="-O3" \
         -DCMAKE_EXE_LINKER_FLAGS="-fsycl-unnamed-lambda" \
         -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=ON && \
     cmake --build build --config Release -j$(nproc) --target llama-server llama-cli'
@@ -83,6 +87,11 @@ ENV LLAMA_ARG_HOST=0.0.0.0
 ENV ONEAPI_DEVICE_SELECTOR=level_zero:0
 ENV ZES_ENABLE_SYSMAN=1
 ENV LD_LIBRARY_PATH=/app/lib:$LD_LIBRARY_PATH
+# Intel Iris Xe iGPU 运行时优化配置 (官方文档与实测验证)
+ENV GGML_SYCL_FA_ONEDNN=0
+ENV GGML_SYCL_ENABLE_FUSION=1
+ENV GGML_SYCL_ENABLE_OPT=1
+ENV GGML_SYCL_DEV2DEV_MEMCPY=2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
