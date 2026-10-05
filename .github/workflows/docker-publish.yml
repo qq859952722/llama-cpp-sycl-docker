@@ -18,7 +18,7 @@ on:
       sycl_f16:
         description: 'Enable GGML_SYCL_F16 (ON/OFF)'
         required: true
-        default: 'OFF'
+        default: 'ON'
 
 env:
   REGISTRY: ghcr.io
@@ -78,6 +78,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             LLAMA_CPP_BRANCH=${{ github.event.inputs.llama_cpp_branch || 'master' }}
-            GGML_SYCL_F16=${{ github.event.inputs.sycl_f16 || 'OFF' }}
+            GGML_SYCL_F16=${{ github.event.inputs.sycl_f16 || 'ON' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
