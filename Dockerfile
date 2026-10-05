@@ -55,7 +55,6 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
         -DGGML_BACKEND_DL=ON \
         -DGGML_CPU_ALL_VARIANTS=ON \
         -DGGML_SYCL_F16=${GGML_SYCL_F16} \
-        -DGGML_SYCL_DEVICE_ARCH=intel_gpu_tgllp \
         -DGGML_SYCL_ENABLE_OPT=ON \
         -DGGML_SYCL_ENABLE_FUSION=ON \
         -DGGML_SYCL_SUPPORT_LEVEL_ZERO_API=ON \
