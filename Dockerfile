@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor -o /usr/share/keyrings/oneapi-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list && \
     apt-get update && apt-get install -y --no-install-recommends \
+        intel-ocloc \
         intel-oneapi-compiler-dpcpp-cpp \
         intel-oneapi-mkl-devel \
     && rm -rf /var/lib/apt/lists/*
@@ -55,6 +56,7 @@ RUN bash -c 'source /opt/intel/oneapi/setvars.sh && \
         -DGGML_BACKEND_DL=ON \
         -DGGML_CPU_ALL_VARIANTS=ON \
         -DGGML_SYCL_F16=${GGML_SYCL_F16} \
+        -DGGML_SYCL_DEVICE_ARCH=intel_gpu_tgllp \
         -DGGML_SYCL_ENABLE_OPT=ON \
         -DGGML_SYCL_ENABLE_FUSION=ON \
         -DGGML_SYCL_SUPPORT_LEVEL_ZERO_API=ON \
