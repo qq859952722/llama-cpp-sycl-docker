@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor -o /usr/share/keyrings/oneapi-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list && \
     apt-get update && apt-get install -y --no-install-recommends \
-        intel-ocloc \
+        intel-ocloc libigc1 \
         intel-oneapi-compiler-dpcpp-cpp \
         intel-oneapi-mkl-devel \
     && rm -rf /var/lib/apt/lists/*
