@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
+      - autocheck
     tags:
       - 'v*'
   pull_request:
     branches:
       - main
+      - autocheck
   workflow_dispatch:
     inputs:
       llama_cpp_branch:
@@ -64,6 +66,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=autocheck,enable=${{ github.ref == 'refs/heads/autocheck' }}
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha,format=short
@@ -71,7 +74,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: .\
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

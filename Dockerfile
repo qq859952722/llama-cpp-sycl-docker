@@ -81,14 +81,13 @@ RUN mkdir -p /app/dist/bin /app/dist/lib && \
 FROM ubuntu:${UBUNTU_VERSION} AS runner
 
 LABEL org.opencontainers.image.source="https://github.com/qq859952722/llama-cpp-sycl-docker"
-LABEL org.opencontainers.image.description="llama.cpp with Intel SYCL/Level-Zero GPU acceleration"
+LABEL org.opencontainers.image.description="llama.cpp with Intel SYCL/Level-Zero GPU acceleration & autocheck multi-model manager"
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV LLAMA_ARG_HOST=0.0.0.0
 ENV ONEAPI_DEVICE_SELECTOR=level_zero:0
 ENV ZES_ENABLE_SYSMAN=1
 ENV LD_LIBRARY_PATH=/app/lib:$LD_LIBRARY_PATH
-# Intel Iris Xe iGPU 运行时优化配置 (官方文档与实测验证)
+# Intel Iris Xe iGPU 运行时黄金优化配置 (官方文档与实测验证)
 ENV GGML_SYCL_FA_ONEDNN=0
 ENV GGML_SYCL_ENABLE_FUSION=1
 ENV GGML_SYCL_ENABLE_OPT=1
@@ -101,6 +100,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libcurl4 \
     libgomp1 \
+    python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Intel GPU compute runtime (Level Zero / OpenCL ICD drivers)
@@ -118,36 +118,20 @@ WORKDIR /app
 COPY --from=builder /app/dist/bin/ /usr/local/bin/
 COPY --from=builder /app/dist/lib/ /app/lib/
 
-# ---------------------------------------------------------------------------
-# Fix: ggml only discovers dynamic backends (libggml-sycl.so, libggml-cpu-*.so)
-# that sit NEXT TO THE EXECUTABLE or in the current working directory.
-# With GGML_BACKEND_DL=ON the backends are built into /app/lib while the
-# binaries live in /usr/local/bin, so a plain run reports:
-#     Available devices:
-#       (none)
-# and llama.cpp silently falls back to CPU-only inference (no SYCL / no iGPU).
-#
-# Measured on Intel i7-12700H (Iris Xe 96EU):
-#   GGML_BACKEND_DIR / GGML_BACKEND_SEARCH_PATH alone -> (none)
-#   symlinks into /usr/local/lib + ldconfig           -> (none)
-#   symlinks next to the binary (/usr/local/bin)      -> SYCL0 detected
-#   WORKDIR /app/lib (backends in cwd)                -> SYCL0 detected
-# The symlink is cwd-independent, so the container works with any WORKDIR
-# or entrypoint override.
-# ---------------------------------------------------------------------------
+# 确保动态后端符号链接直达可执行文件目录，解决 (none) 设备退化
 RUN ln -sf /app/lib/libggml*.so /usr/local/bin/
 
-# Auxiliary: honoured by newer ggml builds (harmless no-op on current ones).
 ENV GGML_BACKEND_DIR=/app/lib
 ENV GGML_BACKEND_SEARCH_PATH=/app/lib
 
 RUN ldconfig
 
+# 安装 autocheck 多模型动态热加载管理器
+COPY autocheck_manager.py /usr/local/bin/autocheck-manager
+RUN chmod +x /usr/local/bin/autocheck-manager
+
 WORKDIR /models
-EXPOSE 8080
+VOLUME ["/models", "/logs"]
+EXPOSE 8080-8099
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
-
-ENTRYPOINT ["llama-server"]
-CMD ["--host", "0.0.0.0", "--port", "8080"]
+ENTRYPOINT ["autocheck-manager"]
